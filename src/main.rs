@@ -1,6 +1,5 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use clap::Parser;
-use indicatif::ProgressBar;
 use std::io::{self, Write};
 
 #[derive(Parser)]
@@ -9,18 +8,17 @@ struct Cli {
     path: std::path::PathBuf,
 }
 
-fn read_file_progress(n: u64, label: &str) {
-    let pb = ProgressBar::new(n);
-
-    let mut sum = 0;
-    for i in 0..n {
-        // Any quick computation, followed by an update to the progress bar.
-        sum += 2 * i + 3;
-        pb.inc(1);
+fn find_matches(content: &str, pattern: &str) -> String {
+    let mut i = 0;
+    let mut result = String::new();
+    for line in content.lines() {
+        i += 1;
+        if line.contains(pattern) {
+            result.push_str(&(line.to_owned() + " : " + &i.to_string().as_str().to_owned() + "\n"));
+        }
     }
-    pb.finish();
 
-    println!("[{}] Sum ({}) calculated in {:?}", label, sum, pb.elapsed());
+    result
 }
 
 fn main() -> Result<()> {
@@ -28,6 +26,12 @@ fn main() -> Result<()> {
     let mut stdout = io::stdout().lock();
     let content = std::fs::read_to_string(&args.path)
         .with_context(|| format!("could not read file `{:?}`", &args.path))?;
-    writeln!(stdout, "{}", content)?;
+
+    if &args.pattern == "*" {
+        writeln!(stdout, "{}", &content)?;
+        return Ok(());
+    }
+    writeln!(stdout, "{}", find_matches(&content, &args.pattern))?;
+
     Ok(())
 }
